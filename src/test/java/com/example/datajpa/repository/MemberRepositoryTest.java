@@ -14,13 +14,11 @@ import org.springframework.test.annotation.Rollback;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -304,6 +302,58 @@ class MemberRepositoryTest {
         System.out.println("findMember.getCreateBy = " + findMember.getCreateBy());
         System.out.println("findMember.getUpdateBy = " + findMember.getUpdateBy());
 
+    }
+
+    @Test
+    public void projections() {
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+        em.flush();
+        em.clear();
+
+        //when
+        List<UsernameOnly> result = memberRepository.findProjectionByUsername("m1");
+        for (UsernameOnly usernameOnly : result) {
+            System.out.println("usernameOnly = " + usernameOnly);
+        }
+
+        List<UsernameOnlyDto> result2 = memberRepository.findProjection2ByUsername("m1");
+        for (UsernameOnly usernameOnly : result) {
+            System.out.println("usernameOnly = " + usernameOnly);
+        }
+        System.out.println("-------------------------------------");
+        List<UsernameOnly> result3 = memberRepository.findProjection3ByUsername("m1", UsernameOnly.class);
+        List<UsernameOnlyDto> result4 = memberRepository.findProjection3ByUsername("m1", UsernameOnlyDto.class);
+        List<NestedClosedProjections> result5 = memberRepository.findProjection3ByUsername("m1", NestedClosedProjections.class);
+    }
+
+    @Test
+    public void nativeQuery() {
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+        em.flush();
+        em.clear();
+
+        //when
+        Member result = memberRepository.findByNativeQuery("m1");
+        System.out.println(result);
+        Page<MemberProjection> result2 = memberRepository.findByNativeProjection(PageRequest.of(0, 10));
+        List<MemberProjection> content = result2.getContent();
+        for (MemberProjection memberProjection : content) {
+            System.out.println("memberProjection ===> " + memberProjection.getUsername());
+            System.out.println("memberProjection ===> " + memberProjection.getTeamName());
+
+        }
     }
 }
 
